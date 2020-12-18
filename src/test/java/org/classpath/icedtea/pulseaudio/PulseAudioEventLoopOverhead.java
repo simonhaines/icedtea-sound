@@ -37,64 +37,65 @@ exception statement from your version.
 
 package org.classpath.icedtea.pulseaudio;
 
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.Mixer;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import org.junit.jupiter.api.BeforeEach;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.Mixer;
+import javax.sound.sampled.spi.MixerProvider;
+
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 
 public class PulseAudioEventLoopOverhead {
 
-        Mixer mixer;
+	Mixer mixer;
 
-        @BeforeEach
-        public void setUp() {
-                Mixer.Info mixerInfos[] = AudioSystem.getMixerInfo();
-                Mixer.Info selectedMixerInfo = null;
-                // int i = 0;
-                for (Mixer.Info info : mixerInfos) {
-                        // System.out.println("Mixer Line " + i++ + ": " + info.getName() +
-                        // " " + info.getDescription());
-                        if (info.getName().contains("PulseAudio")) {
-                                selectedMixerInfo = info;
-                        }
-                }
-                assertNotNull(selectedMixerInfo);
-                mixer = AudioSystem.getMixer(selectedMixerInfo);
-                assertNotNull(mixer);
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
+	@BeforeEach
+	public void setUp() {
+		MixerProvider mixerProvider = new PulseAudioMixerProvider();
+		Mixer.Info mixerInfos[] = mixerProvider.getMixerInfo();
+		Mixer.Info selectedMixerInfo = null;
+		// int i = 0;
+		for (Mixer.Info info : mixerInfos) {
+			// System.out.println("Mixer Line " + i++ + ": " + info.getName() +
+			// " " + info.getDescription());
+			if (info.getName().contains("PulseAudio")) {
+				selectedMixerInfo = info;
+			}
+		}
+		assertNotNull(selectedMixerInfo);
+		mixer = mixerProvider.getMixer(selectedMixerInfo);
+		assertNotNull(mixer);
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
 
-        }
+	}
 
-        @Test
-        @Disabled
-        public void testLongWait() throws LineUnavailableException {
-                mixer.open();
-                try {
-                        /*
-                         * While this test is running, the java procces shouldnt be hogging
-                         * the cpu at all
-                         */
+	@Test
+	@Disabled
+	public void testLongWait() throws LineUnavailableException {
+		mixer.open();
+		try {
+			/*
+			 * While this test is running, the java procces shouldnt be hogging the cpu at
+			 * all
+			 */
 
-                        Thread.sleep(100000);
-                } catch (InterruptedException e) {
-                        System.out.println("thread interrupted");
-                }
+			Thread.sleep(100000);
+		} catch (InterruptedException e) {
+			System.out.println("thread interrupted");
+		}
 
-        }
+	}
 
-        @AfterEach
-        public void tearDown() {
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
-        }
+	@AfterEach
+	public void tearDown() {
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
+	}
 
 }

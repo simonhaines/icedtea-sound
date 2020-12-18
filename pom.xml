@@ -23,7 +23,8 @@
                 </compilerArgs>
               </configuration>
             </plugin>
-            <plugin> <!-- pending javah/skip -->
+            <!--
+            <plugin>
               <groupId>com.github.maven-nar</groupId>
               <artifactId>nar-maven-plugin</artifactId>
               <executions> 
@@ -33,6 +34,7 @@
                 </execution>
               </executions>
             </plugin>
+            -->
           </plugins>
         </pluginManagement>
       </build>
@@ -48,9 +50,12 @@
       <plugin>
         <groupId>com.github.maven-nar</groupId>
         <artifactId>nar-maven-plugin</artifactId>
-        <version>3.5.2</version>
+        <version>3.10.1</version>
         <extensions>true</extensions>
         <configuration>
+          <javah>
+            <skip>true</skip>
+          </javah>
           <c>
             <options>
               <!-- FIXME add proper options -->
@@ -71,22 +76,19 @@
               </sysLib>
             </sysLibs>
           </linker>
-          <tests>
-            <test>
-              <name>PulseAudioMixerProviderTest</name>
-            </test>
-          </tests>
-        </configuration> <!-- -Wno-sign-conversion -->
+        </configuration>
       </plugin>
-      <!--  JUnit 5
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.22.2</version>
+        <configuration>
+          <skipTests>true</skipTests>
+        </configuration>
       </plugin>
-      -->
     </plugins>
   </build>
-  <!--  JUnit 5
+
   <dependencies>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -101,5 +103,5 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  -->
+
 </project>

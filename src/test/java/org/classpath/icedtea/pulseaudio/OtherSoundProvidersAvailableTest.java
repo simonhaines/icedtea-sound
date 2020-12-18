@@ -37,78 +37,76 @@ exception statement from your version.
 
 package org.classpath.icedtea.pulseaudio;
 
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.spi.MixerProvider;
 
 import org.junit.jupiter.api.Test;
 
 public class OtherSoundProvidersAvailableTest {
 
-        @Test
-        public void testOtherSoundProviders() {
-                System.out.println("This tests if alsa mixers are still available");
+	@Test
+	public void testOtherSoundProviders() {
+		System.out.println("This tests if alsa mixers are still available");
 
-                Mixer.Info mixerInfos[] = AudioSystem.getMixerInfo();
-                Mixer.Info selectedMixerInfo = null;
-                Mixer mixer;
+		MixerProvider mixerProvider = new PulseAudioMixerProvider();
+		Mixer.Info mixerInfos[] = mixerProvider.getMixerInfo();
+		Mixer.Info selectedMixerInfo = null;
+		Mixer mixer;
 
-                boolean selected = false;
-                int i = 0;
-                System.out.println("Available Mixers:");
-                // use 0,0 or the default
-                for (Mixer.Info info : mixerInfos) {
-                        System.out.println("Mixer Line " + i++ + ": " + info.getName()
-                                        + " " + info.getDescription());
-                        if (info.getName().contains("0,0") && !selected) {
-                                System.out.println("^ selecting as the mixer to use");
-                                selectedMixerInfo = info;
-                                selected = true;
-                        }
-                }
+		boolean selected = false;
+		int i = 0;
+		System.out.println("Available Mixers:");
+		// use 0,0 or the default
+		for (Mixer.Info info : mixerInfos) {
+			System.out.println("Mixer Line " + i++ + ": " + info.getName() + " " + info.getDescription());
+			if (info.getName().contains("0,0") && !selected) {
+				System.out.println("^ selecting as the mixer to use");
+				selectedMixerInfo = info;
+				selected = true;
+			}
+		}
 
-                if (selectedMixerInfo != null) {
-                        System.out.println(selectedMixerInfo.toString());
-                }
+		if (selectedMixerInfo != null) {
+			System.out.println(selectedMixerInfo.toString());
+		}
 
-                System.out.print("Selected mixer is of class: ");
+		System.out.print("Selected mixer is of class: ");
 
-                mixer = AudioSystem.getMixer(selectedMixerInfo);
-                System.out.println(mixer.getClass().toString());
-                try {
-                        Line.Info sourceDataLineInfo = null;
+		mixer = mixerProvider.getMixer(selectedMixerInfo);
+		System.out.println(mixer.getClass().toString());
+		try {
+			Line.Info sourceDataLineInfo = null;
 
-                        mixer.open(); // initialize the mixer
+			mixer.open(); // initialize the mixer
 
-                        Line.Info allLineInfo[] = mixer.getSourceLineInfo();
-                        System.out.println("Source lines supported by mixer: ");
-                        int j = 0;
-                        for (Line.Info lineInfo : allLineInfo) {
-                                System.out.println("Source Line " + j++ + ": "
-                                                + lineInfo.getLineClass());
-                                if (lineInfo.toString().contains("SourceDataLine")) {
-                                        sourceDataLineInfo = lineInfo;
-                                }
+			Line.Info allLineInfo[] = mixer.getSourceLineInfo();
+			System.out.println("Source lines supported by mixer: ");
+			int j = 0;
+			for (Line.Info lineInfo : allLineInfo) {
+				System.out.println("Source Line " + j++ + ": " + lineInfo.getLineClass());
+				if (lineInfo.toString().contains("SourceDataLine")) {
+					sourceDataLineInfo = lineInfo;
+				}
 
-                        }
+			}
 
-                        if (sourceDataLineInfo == null) {
-                                System.out.println("Mixer supports no SourceDataLines");
-                        } else {
-                                SourceDataLine sourceDataLine = (SourceDataLine) mixer
-                                                .getLine(sourceDataLineInfo);
+			if (sourceDataLineInfo == null) {
+				System.out.println("Mixer supports no SourceDataLines");
+			} else {
+				SourceDataLine sourceDataLine = (SourceDataLine) mixer.getLine(sourceDataLineInfo);
 
-                                sourceDataLine.open();
-                                // sourceDataLine.write('a', 0, 2);
-                                sourceDataLine.close();
-                        }
-                } catch (LineUnavailableException e) {
-                        System.out.println("Line unavailable");
-                } finally {
-                        mixer.close();
-                }
+				sourceDataLine.open();
+				// sourceDataLine.write('a', 0, 2);
+				sourceDataLine.close();
+			}
+		} catch (LineUnavailableException e) {
+			System.out.println("Line unavailable");
+		} finally {
+			mixer.close();
+		}
 
-        }
+	}
 }

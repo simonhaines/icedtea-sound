@@ -40,7 +40,6 @@ package org.classpath.icedtea.pulseaudio;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.classpath.icedtea.pulseaudio.ContextEvent;
 import org.classpath.icedtea.pulseaudio.Debug.DebugLevel;
 
 /**

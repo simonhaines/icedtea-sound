@@ -49,76 +49,71 @@ import org.junit.jupiter.api.Test;
 
 public class PulseAudioMixerRawTest {
 
-        PulseAudioMixer mixer = null;
+	PulseAudioMixer mixer = null;
 
-        @BeforeEach
-        public void setUp() {
-                mixer = PulseAudioMixer.getInstance();
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
-        }
+	@BeforeEach
+	public void setUp() {
+		mixer = PulseAudioMixer.getInstance();
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
+	}
 
-        @Test
-        public void testLocalOpen() throws LineUnavailableException {
-                System.out.println("This test tries to open to the local system");
-                mixer.openLocal();
-        }
+	@Test
+	public void testLocalOpen() throws LineUnavailableException {
+		System.out.println("This test tries to open to the local system");
+		mixer.openLocal();
+	}
 
-        @Test
-        public void testLocalOpenAppName() throws LineUnavailableException {
-                System.out
-                                .println("This test tries to connect to the local system while using an application name");
-                mixer.openLocal("JunitTest");
+	@Test
+	public void testLocalOpenAppName() throws LineUnavailableException {
+		System.out.println("This test tries to connect to the local system while using an application name");
+		mixer.openLocal("JunitTest");
 
-        }
+	}
 
-        @Test
-        public void testRemoteOpenWithInvalidPort() throws UnknownHostException,
-                        LineUnavailableException {
-                System.out.println("this test tries to connect to an invalid remote system");
-                assertThrows(LineUnavailableException.class, () -> {
-                    mixer.openRemote("JUnitTest", "128.0.0.1", 10);
-                });
-        }
+	@Test
+	public void testRemoteOpenWithInvalidPort() throws UnknownHostException, LineUnavailableException {
+		System.out.println("this test tries to connect to an invalid remote system");
+		assertThrows(LineUnavailableException.class, () -> {
+			mixer.openRemote("JUnitTest", "128.0.0.1", 10);
+		});
+	}
 
-        /*
-         * This test assumes a computer named 'town' is in the network with
-         * pulseaudio listening on port 4173
-         */
-        @Test
-        public void testRemoteOpenWithValidPort() throws UnknownHostException,
-                        LineUnavailableException {
-                System.out.println("This test tries to connect a valid remote system");
-                mixer.openRemote("JUnitTest", "town", 4713);
-                mixer.close();
-        }
+	/*
+	 * This test assumes a computer named 'town' is in the network with pulseaudio
+	 * listening on port 4173
+	 */
+	@Test
+	public void testRemoteOpenWithValidPort() throws UnknownHostException, LineUnavailableException {
+		System.out.println("This test tries to connect a valid remote system");
+		mixer.openRemote("JUnitTest", "town", 4713);
+		mixer.close();
+	}
 
-        /*
-         * This test assumes a computer named 'town' is in the network with
-         * pulseaudio listening
-         */
-        @Test
-        public void testRemoteOpen() throws UnknownHostException,
-                        LineUnavailableException {
-                mixer.openRemote("JUnitTest", "town");
-                mixer.close();
-        }
+	/*
+	 * This test assumes a computer named 'town' is in the network with pulseaudio
+	 * listening
+	 */
+	@Test
+	public void testRemoteOpen() throws UnknownHostException, LineUnavailableException {
+		mixer.openRemote("JUnitTest", "town");
+		mixer.close();
+	}
 
-        @Test
-        public void testInvalidRemoteOpen() throws UnknownHostException,
-                        LineUnavailableException {
-        	assertThrows(LineUnavailableException.class, () -> {
-                mixer.openRemote("JUnitTest", "127.0.0.1");
-                mixer.close();
-        	});
-        }
+	@Test
+	public void testInvalidRemoteOpen() throws UnknownHostException, LineUnavailableException {
+		assertThrows(LineUnavailableException.class, () -> {
+			mixer.openRemote("JUnitTest", "127.0.0.1");
+			mixer.close();
+		});
+	}
 
-        @AfterEach
-        public void tearDown() {
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
-        }
+	@AfterEach
+	public void tearDown() {
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
+	}
 
 }

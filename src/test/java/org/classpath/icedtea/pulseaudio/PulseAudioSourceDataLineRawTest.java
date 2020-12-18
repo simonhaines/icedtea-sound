@@ -53,7 +53,7 @@ import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
@@ -61,240 +61,225 @@ import org.junit.jupiter.api.Test;
 
 public class PulseAudioSourceDataLineRawTest {
 
-        PulseAudioMixer mixer = null;
+	PulseAudioMixer mixer = null;
 
-        int started = 0;
-        int stopped = 0;
+	int started = 0;
+	int stopped = 0;
 
-        AudioFormat aSupportedFormat = new AudioFormat(
-                        AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 1, 1, 44100f, true);
+	AudioFormat aSupportedFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 1, 1, 44100f, true);
 
-        class ThreadWriter extends Thread {
-                PulseAudioSourceDataLine line;
-                AudioInputStream stream;
+	class ThreadWriter extends Thread {
+		PulseAudioSourceDataLine line;
+		AudioInputStream stream;
 
-                public ThreadWriter(AudioInputStream stream,
-                                PulseAudioSourceDataLine line) throws LineUnavailableException {
+		public ThreadWriter(AudioInputStream stream, PulseAudioSourceDataLine line) throws LineUnavailableException {
 
-                        this.line = line;
-                        this.stream = stream;
+			this.line = line;
+			this.stream = stream;
 
-                        if (line.isOpen()) {
-                                line.close();
-                        }
+			if (line.isOpen()) {
+				line.close();
+			}
 
-                }
+		}
 
-                @Override
-                public void run() {
-                        try {
-                                AudioFormat audioFormat = stream.getFormat();
+		@Override
+		public void run() {
+			try {
+				AudioFormat audioFormat = stream.getFormat();
 
-                                line.open(audioFormat);
+				line.open(audioFormat);
 
-                                byte[] abData = new byte[1000];
-                                int bytesRead = 0;
+				byte[] abData = new byte[1000];
+				int bytesRead = 0;
 
-                                line.start();
+				line.start();
 
-                                while (bytesRead >= 0) {
-                                        bytesRead = stream.read(abData, 0, abData.length);
-                                        // System.out.println("read data");
-                                        if (bytesRead > 0) {
-                                                // System.out.println("about to write data");
-                                                line.write(abData, 0, bytesRead);
-                                                // System.out.println("wrote data");
-                                        }
-                                }
+				while (bytesRead >= 0) {
+					bytesRead = stream.read(abData, 0, abData.length);
+					// System.out.println("read data");
+					if (bytesRead > 0) {
+						// System.out.println("about to write data");
+						line.write(abData, 0, bytesRead);
+						// System.out.println("wrote data");
+					}
+				}
 
-                                line.drain();
-                                line.close();
+				line.drain();
+				line.close();
 
-                        } catch (LineUnavailableException e) {
-                                e.printStackTrace();
-                        } catch (IOException e) {
-                                e.printStackTrace();
-                        }
-                }
-        }
+			} catch (LineUnavailableException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
 
-        @BeforeEach
-        public void setUp() throws LineUnavailableException {
+	@BeforeEach
+	public void setUp() throws LineUnavailableException {
 
-                mixer = PulseAudioMixer.getInstance();
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
+		mixer = PulseAudioMixer.getInstance();
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
 
-                mixer.open();
+		mixer.open();
 
-                started = 0;
-                stopped = 0;
+		started = 0;
+		stopped = 0;
 
-        }
+	}
 
-        @Test
-        public void testStartAndStopEventsOnCork()
-                        throws UnsupportedAudioFileException, IOException,
-                        LineUnavailableException, InterruptedException {
+	@Test
+	public void testStartAndStopEventsOnCork()
+			throws UnsupportedAudioFileException, IOException, LineUnavailableException, InterruptedException {
 
-                System.out
-                                .println("This test checks if START and STOP notifications appear on corking");
+		System.out.println("This test checks if START and STOP notifications appear on corking");
 
-                File soundFile = new File("testsounds/startup.wav");
-                AudioInputStream audioInputStream = AudioSystem
-                                .getAudioInputStream(soundFile);
-                AudioFormat audioFormat = audioInputStream.getFormat();
+		final ClassLoader classLoader = getClass().getClassLoader();
+		File soundFile = new File(classLoader.getResource("startup.wav").getFile());
+		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		AudioFormat audioFormat = audioInputStream.getFormat();
 
-                PulseAudioSourceDataLine line;
-                line = (PulseAudioSourceDataLine) mixer.getLine(new DataLine.Info(
-                                SourceDataLine.class, audioFormat));
-                assertNotNull(line);
+		PulseAudioSourceDataLine line;
+		line = (PulseAudioSourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat));
+		assertNotNull(line);
 
-                LineListener startStopListener = new LineListener() {
+		LineListener startStopListener = new LineListener() {
 
-                        @Override
-                        public void update(LineEvent event) {
-                                if (event.getType() == LineEvent.Type.START) {
-                                        System.out.println("START");
-                                        started++;
-                                }
+			@Override
+			public void update(LineEvent event) {
+				if (event.getType() == LineEvent.Type.START) {
+					System.out.println("START");
+					started++;
+				}
 
-                                if (event.getType() == LineEvent.Type.STOP) {
-                                        System.out.println("STOP");
-                                        stopped++;
-                                }
-                        }
+				if (event.getType() == LineEvent.Type.STOP) {
+					System.out.println("STOP");
+					stopped++;
+				}
+			}
 
-                };
+		};
 
-                line.addLineListener(startStopListener);
-                System.out.println("Launching threadWriter");
-                ThreadWriter writer = new ThreadWriter(audioInputStream, line);
-                writer.start();
-                // System.out.println("started");
+		line.addLineListener(startStopListener);
+		System.out.println("Launching threadWriter");
+		ThreadWriter writer = new ThreadWriter(audioInputStream, line);
+		writer.start();
+		// System.out.println("started");
 
-                Thread.sleep(1000);
+		Thread.sleep(1000);
 
-                // CORK
-                line.stop();
+		// CORK
+		line.stop();
 
-                Thread.sleep(1000);
+		Thread.sleep(1000);
 
-                // UNCORK
-                line.start();
+		// UNCORK
+		line.start();
 
-                Thread.sleep(1000);
+		Thread.sleep(1000);
 
-                // System.out.println("waiting for thread to finish");
-                writer.join();
+		System.out.println("waiting for thread to finish");
+		writer.join();
 
-                assertEquals(2, started);
-                assertEquals(2, stopped);
+		assertEquals(2, started);
+		assertEquals(2, stopped);
 
-        }
+	}
 
-        @Test
-        public void testVolume() throws Exception {
+	@Test
+	public void testVolume() throws Exception {
 
-                Mixer selectedMixer = mixer;
-                SourceDataLine line = (SourceDataLine) selectedMixer
-                                .getLine(new Line.Info(SourceDataLine.class));
+		Mixer selectedMixer = mixer;
+		SourceDataLine line = (SourceDataLine) selectedMixer.getLine(new Line.Info(SourceDataLine.class));
 
-                File soundFile = new File(new java.io.File(".").getCanonicalPath()
-                                + "/testsounds/logout.wav");
-                AudioInputStream audioInputStream = AudioSystem
-                                .getAudioInputStream(soundFile);
-                AudioFormat audioFormat = audioInputStream.getFormat();
+		File soundFile = new File("logout.wav");
+		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		AudioFormat audioFormat = audioInputStream.getFormat();
 
-                line.open(audioFormat);
-                line.start();
-                PulseAudioVolumeControl volume = (PulseAudioVolumeControl) line
-                                .getControl(FloatControl.Type.VOLUME);
+		line.open(audioFormat);
+		line.start();
+		PulseAudioVolumeControl volume = (PulseAudioVolumeControl) line.getControl(FloatControl.Type.VOLUME);
 
-                volume.setValue(PulseAudioVolumeControl.MAX_VOLUME);
+		volume.setValue(PulseAudioVolumeControl.MAX_VOLUME);
 
-                byte[] abData = new byte[1000];
-                int bytesRead = 0;
+		byte[] abData = new byte[1000];
+		int bytesRead = 0;
 
-                while (bytesRead >= 0) {
-                        bytesRead = audioInputStream.read(abData, 0, abData.length);
-                        if (bytesRead > 0) {
-                                line.write(abData, 0, bytesRead);
-                        }
-                }
+		while (bytesRead >= 0) {
+			bytesRead = audioInputStream.read(abData, 0, abData.length);
+			if (bytesRead > 0) {
+				line.write(abData, 0, bytesRead);
+			}
+		}
 
-                line.drain();
-                line.close();
-                selectedMixer.close();
+		line.drain();
+		line.close();
+		selectedMixer.close();
 
-        }
+	}
 
-        @Test
-        public void testSettingStreamName() throws LineUnavailableException,
-                        UnsupportedAudioFileException, IOException {
-                File soundFile = new File("testsounds/logout.wav");
-                AudioInputStream audioInputStream = AudioSystem
-                                .getAudioInputStream(soundFile);
-                AudioFormat audioFormat = audioInputStream.getFormat();
+	@Test
+	public void testSettingStreamName() throws LineUnavailableException, UnsupportedAudioFileException, IOException {
+		File soundFile = new File("logout.wav");
+		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		AudioFormat audioFormat = audioInputStream.getFormat();
 
-                PulseAudioSourceDataLine line;
-                line = (PulseAudioSourceDataLine) mixer.getLine(new DataLine.Info(
-                                SourceDataLine.class, audioFormat));
+		PulseAudioSourceDataLine line;
+		line = (PulseAudioSourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat));
 
-                String name = "Knights Who Say ... Oh my god, i am so sorry, i didnt mean it...";
-                line.setName(name);
+		String name = "Knights Who Say ... Oh my god, i am so sorry, i didnt mean it...";
+		line.setName(name);
 
-                line.open(audioFormat);
-                line.start();
+		line.open(audioFormat);
+		line.start();
 
-                byte[] abData = new byte[1000];
-                int bytesRead = 0;
+		byte[] abData = new byte[1000];
+		int bytesRead = 0;
 
-                while (bytesRead >= 0) {
-                        bytesRead = audioInputStream.read(abData, 0, abData.length);
-                        if (bytesRead > 0) {
-                                line.write(abData, 0, bytesRead);
-                        }
-                }
+		while (bytesRead >= 0) {
+			bytesRead = audioInputStream.read(abData, 0, abData.length);
+			if (bytesRead > 0) {
+				line.write(abData, 0, bytesRead);
+			}
+		}
 
-                assertTrue(line.getName() == name);
-                /*
-                 * FIXME test that PulseAudio also knows this correctly using
-                 * introspection
-                 */
+		assertTrue(line.getName() == name);
+		/*
+		 * FIXME test that PulseAudio also knows this correctly using introspection
+		 */
 
-                line.drain();
-                line.stop();
-                line.close();
+		line.drain();
+		line.stop();
+		line.close();
 
-        }
+	}
 
-        @Test
-        public void messWithStreams() throws LineUnavailableException {
-                System.out
-                                .println("This test tries to unCork a stream which hasnt been corked");
+	@Test
+	public void messWithStreams() throws LineUnavailableException {
+		System.out.println("This test tries to unCork a stream which hasnt been corked");
 
-                PulseAudioSourceDataLine line = (PulseAudioSourceDataLine) mixer
-                                .getLine(new DataLine.Info(SourceDataLine.class,
-                                                aSupportedFormat, 1000));
+		PulseAudioSourceDataLine line = (PulseAudioSourceDataLine) mixer
+				.getLine(new DataLine.Info(SourceDataLine.class, aSupportedFormat, 1000));
 
-                line.open();
-                line.start();
-                Stream s = line.getStream();
-                Operation o;
-                synchronized (EventLoop.getEventLoop().threadLock) {
-                        o = s.unCork();
-                }
-                o.waitForCompletion();
-                o.releaseReference();
-                line.stop();
-                line.close();
-        }
+		line.open();
+		line.start();
+		Stream s = line.getStream();
+		Operation o;
+		synchronized (EventLoop.getEventLoop().threadLock) {
+			o = s.unCork();
+		}
+		o.waitForCompletion();
+		o.releaseReference();
+		line.stop();
+		line.close();
+	}
 
-        @AfterEach
-        public void tearDown() {
+	@AfterEach
+	public void tearDown() {
 
-        }
+	}
 
 }

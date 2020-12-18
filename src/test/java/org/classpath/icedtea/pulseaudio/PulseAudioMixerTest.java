@@ -37,15 +37,14 @@ exception statement from your version.
 
 package org.classpath.icedtea.pulseaudio;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineEvent;
@@ -64,382 +63,363 @@ import org.junit.jupiter.api.Test;
 
 public class PulseAudioMixerTest {
 
-        Mixer selectedMixer;
-
-        AudioFormat aSupportedFormat = new AudioFormat(
-                        AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 1, 1, 44100f, true);
-        AudioFormat aNotSupportedFormat = new AudioFormat(
-                        AudioFormat.Encoding.ULAW, 44100, 32, 10, 10, 44100f, true);
-
-        @BeforeEach
-        public void setUp() throws Exception {
-        	var mixerProvider = new PulseAudioMixerProvider();
-                Mixer.Info mixerInfos[] = mixerProvider.getMixerInfo(); // AudioSystem.getMixerInfo();
-                Mixer.Info selectedMixerInfo = null;
-                // int i = 0;
-                for (Mixer.Info info : mixerInfos) {
-                        // System.out.println("Mixer Line " + i++ + ": " + info.getName() +
-                        // " " + info.getDescription());
-                        if (info.getName().contains("PulseAudio")) {
-                                selectedMixerInfo = info;
-                        }
-                }
-                assertNotNull(selectedMixerInfo);
-                selectedMixer = mixerProvider.getMixer(selectedMixerInfo); // AudioSystem.getMixer(selectedMixerInfo);
-                assertNotNull(selectedMixer);
-                if (selectedMixer.isOpen()) {
-                        selectedMixer.close();
-                }
-        }
-
-        @Test
-        public void testOpenClose() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.close();
-
-        }
-
-        @Test
-        public void testSourceLinesExist() throws LineUnavailableException {
-                System.out.println("This tests that source lines exist");
-                selectedMixer.open();
-                Line.Info allLineInfo[] = selectedMixer.getSourceLineInfo();
-                assertNotNull(allLineInfo);
-                assertTrue(allLineInfo.length > 0);
-
-                boolean foundSourceDataLine = false;
-                boolean foundClip = false;
-                boolean foundPort = false;
-
-                int j = 0;
-                for (Line.Info lineInfo : allLineInfo) {
-                        System.out.println("Source Line " + j++ + ": "
-                                        + lineInfo.getLineClass());
-                        if (lineInfo.getLineClass().toString().contains("SourceDataLine")) {
-                                foundSourceDataLine = true;
-                        } else if (lineInfo.getLineClass().toString().contains("Clip")) {
-                                foundClip = true;
-                        } else if (lineInfo.getLineClass().toString().contains("Port")) {
-                                foundPort = true;
-                        } else {
-                                assertFalse("Found a new type of Line", true);
-                        }
-                        Line sourceLine = (Line) selectedMixer.getLine(lineInfo);
-                        assertNotNull(sourceLine);
-
-                }
-
-                assertTrue("Couldnt find a SourceDataLine", foundSourceDataLine);
-                assertTrue("Couldnt find a Clip", foundClip);
-                assertTrue("Couldnt find a Port", foundPort);
-
-        }
-
-        @Test
-        public void testTargetLinesExist() throws LineUnavailableException {
-                System.out.println("This tests if target Lines exist");
-                selectedMixer.open();
-                Line.Info allLineInfo[] = selectedMixer.getTargetLineInfo();
-                assertNotNull(allLineInfo);
-                assertTrue(allLineInfo.length > 0);
-
-                boolean foundTargetDataLine = false;
-                boolean foundPort = false;
-
-                int j = 0;
-                for (Line.Info lineInfo : allLineInfo) {
-                        System.out.println("Target Line " + j++ + ": "
-                                        + lineInfo.getLineClass());
-                        if (lineInfo.getLineClass().toString().contains("TargetDataLine")) {
-                                foundTargetDataLine = true;
-                        } else if (lineInfo.getLineClass().toString().contains("Port")) {
-                                foundPort = true;
-                        } else {
-                                assertTrue("Found invalid type of target line", true);
-                        }
-                        Line targetLine = (Line) selectedMixer.getLine(lineInfo);
-                        assertNotNull(targetLine);
-
-                }
-
-                assertTrue("Couldnt find a TargetDataLine", foundTargetDataLine);
-                assertTrue("Couldnt find a target Port", foundPort);
-
-        }
-
-        @Disabled
-        @Test
-        public void testHeadphonePortExists() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.getLine(Port.Info.HEADPHONE);
-        }
-
-        @Disabled
-        @Test
-        public void testSpeakerPortExists() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.getLine(Port.Info.SPEAKER);
-        }
-
-        @Disabled
-        @Test
-        public void testLineInPortExists() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.getLine(Port.Info.LINE_IN);
-        }
-
-        @Disabled
-        @Test
-        public void testCdPortExists() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.getLine(Port.Info.COMPACT_DISC);
-        }
-
-        @Disabled
-        @Test
-        public void testLineOutPortExists() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.getLine(Port.Info.LINE_OUT);
-        }
-
-        @Disabled
-        @Test
-        public void testMicrophonePortExists() throws LineUnavailableException {
-                selectedMixer.open();
-                selectedMixer.getLine(Port.Info.MICROPHONE);
-        }
-
-        @Test
-        public void testSaneNumberOfPorts() throws LineUnavailableException {
-                System.out
-                                .println("This test checks that a sane number of ports are detected");
-                selectedMixer.open();
-                Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
-                assertNotNull(lineInfos);
-
-                int ports = 0;
-                for (Line.Info info : lineInfos) {
-                        if (info instanceof Port.Info) {
-                                ports++;
-                        }
-                }
-                assertTrue("Too few Source ports", ports > 0);
-                assertTrue("Too many Source ports... this looks wrong",
-                                ports < 5);
-
-                lineInfos = selectedMixer.getTargetLineInfo();
-                ports = 0;
-                for (Line.Info info : lineInfos) {
-                        if (info instanceof Port.Info) {
-                                ports++;
-                        }
-                }
-                assertTrue("Too few Target ports", ports > 0);
-                assertTrue("Too many Target ports... this looks wrong",
-                                ports < 5);
-
-        }
-
-        @Test
-        public void testGetTargetPortInfo() throws LineUnavailableException {
-                System.out.println("This test checks target ports");
-                selectedMixer.open();
-                Line.Info[] lineInfos = selectedMixer.getTargetLineInfo();
-                int i = 0;
-                for (Line.Info info : lineInfos) {
-                        if (info instanceof Port.Info) {
-                                Port.Info portInfo = (Port.Info) info;
-                                assertTrue(portInfo.isSource() == false);
-                                assertTrue(portInfo.getLineClass() == Port.class);
-                                System.out.println("Port " + ++i + ": " + portInfo.getName()
-                                                + " - " + portInfo.getLineClass());
-                        }
-                }
-
-        }
-
-        @Test
-        public void testGetSourcePortInfo() throws LineUnavailableException {
-                System.out.println("This test checks source ports");
-                selectedMixer.open();
-                Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
-                int i = 0;
-                for (Line.Info info : lineInfos) {
-                        if (info instanceof Port.Info) {
-                                Port.Info portInfo = (Port.Info) info;
-                                assertTrue(portInfo.isSource() == true);
-                                assertTrue(portInfo.getLineClass() == Port.class);
-                                System.out.println("Port " + ++i + ": " + portInfo.getName()
-                                                + " - " + portInfo.getLineClass());
-                        }
-                }
-
-        }
-
-        @Test
-        public void testOpeningAgain() throws LineUnavailableException {
-        	assertThrows(IllegalStateException.class, () -> {
-                selectedMixer.open();
-                selectedMixer.open();
-			});
-        }
-
-        @Test
-        public void testClosingAgain() throws LineUnavailableException,
-                        IllegalStateException {
-        	assertThrows(IllegalStateException.class, () -> {
-                selectedMixer.close();
-                selectedMixer.close();
-        	});
-        }
-
-        @Test
-        public void testSourceLinesOpenAndClose() throws LineUnavailableException {
-                System.out.println("This test checks if source lines open and close");
-                selectedMixer.open();
-
-                Line.Info allLineInfo[] = selectedMixer.getSourceLineInfo();
-                for (Line.Info lineInfo : allLineInfo) {
-                        try {
-                                Line sourceLine = selectedMixer.getLine(lineInfo);
-                                sourceLine.open();
-                                sourceLine.close();
-                        } catch (IllegalArgumentException e) {
-                                // ignore this
-                        }
-                }
-        }
-
-        @Test
-        public void testTargetLinesOpenAndClose() throws LineUnavailableException {
-                System.out.println("This test checks if source lines open and close");
-                selectedMixer.open();
-
-                Line.Info allLineInfo[] = selectedMixer.getTargetLineInfo();
-                for (Line.Info lineInfo : allLineInfo) {
-                        try {
-                                TargetDataLine targetLine = (TargetDataLine) selectedMixer
-                                                .getLine(lineInfo);
-                                assertNotNull(targetLine);
-                                targetLine.open(aSupportedFormat);
-                                targetLine.close();
-                        } catch (ClassCastException cce) {
-                                Port targetLine = (Port) selectedMixer.getLine(lineInfo);
-                                assertNotNull(targetLine);
-                                targetLine.open();
-                                targetLine.close();
-                        }
-
-                }
-        }
-
-        @Test
-        public void testOpenEvent() throws LineUnavailableException {
-                LineListener listener = new LineListener() {
-                        private int called = 0;
-
-                        @Override
-                        public void update(LineEvent event) {
-                                assert (event.getType() == LineEvent.Type.OPEN);
-                                called++;
-                                // assert listener is called exactly once
-                                assertEquals(1, called);
-                        }
-                };
-
-                selectedMixer.addLineListener(listener);
-                selectedMixer.open();
-                selectedMixer.removeLineListener(listener);
-                selectedMixer.close();
-
-        }
-
-        @Test
-        public void testCloseEvent() throws LineUnavailableException {
-                LineListener listener = new LineListener() {
-                        private int count = 0;
-
-                        @Override
-                        public void update(LineEvent event) {
-                                assertTrue(event.getType() == LineEvent.Type.CLOSE);
-                                count++;
-                                // assert listener is called exactly once
-                                assertEquals(1, count);
-
-                        }
-                };
-
-                selectedMixer.open();
-                selectedMixer.addLineListener(listener);
-                selectedMixer.close();
-                selectedMixer.removeLineListener(listener);
-
-        }
-
-        @Test
-        public void testLineSupportedWorksWithoutOpeningMixer() {
-
-                assertFalse(selectedMixer.isOpen());
-
-                assertFalse(selectedMixer.isLineSupported(new DataLine.Info(
-                                SourceDataLine.class, aNotSupportedFormat)));
-
-                assertTrue(selectedMixer.isLineSupported(new DataLine.Info(
-                                SourceDataLine.class, aSupportedFormat)));
-
-        }
-
-        @Test
-        public void testSynchronizationNotSupported()
-                        throws LineUnavailableException {
-                selectedMixer.open();
-
-                SourceDataLine line1 = (SourceDataLine) selectedMixer
-                                .getLine(new Line.Info(SourceDataLine.class));
-                SourceDataLine line2 = (SourceDataLine) selectedMixer
-                                .getLine(new Line.Info(SourceDataLine.class));
-                Line[] lines = { line1, line2 };
-
-                assertFalse(selectedMixer
-                                .isSynchronizationSupported(lines, true));
-
-                assertFalse(selectedMixer.isSynchronizationSupported(lines,
-                                false));
-
-                try {
-                        selectedMixer.synchronize(lines, true);
-                        fail("mixer shouldnt be able to synchronize lines");
-                } catch (IllegalArgumentException e) {
-
-                }
-
-                try {
-                        selectedMixer.synchronize(lines, false);
-                        fail("mixer shouldnt be able to synchronize lines");
-                } catch (IllegalArgumentException e) {
-
-                }
-
-                selectedMixer.close();
-
-        }
-
-        @Disabled
-        @Test
-        public void testLongWait() throws LineUnavailableException {
-                selectedMixer.open();
-                try {
-                        Thread.sleep(1000);
-                } catch (InterruptedException e) {
-                        System.out.println("thread interrupted");
-                }
-
-        }
-
-        @AfterEach
-        public void tearDown() throws Exception {
-                if (selectedMixer.isOpen())
-                        selectedMixer.close();
-        }
+	Mixer selectedMixer;
+
+	AudioFormat aSupportedFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 1, 1, 44100f, true);
+	AudioFormat aNotSupportedFormat = new AudioFormat(AudioFormat.Encoding.ULAW, 44100, 32, 10, 10, 44100f, true);
+
+	@BeforeEach
+	public void setUp() throws Exception {
+		MixerProvider mixerProvider = new PulseAudioMixerProvider();
+		Mixer.Info mixerInfos[] = mixerProvider.getMixerInfo(); // AudioSystem.getMixerInfo();
+		Mixer.Info selectedMixerInfo = null;
+		// int i = 0;
+		for (Mixer.Info info : mixerInfos) {
+			// System.out.println("Mixer Line " + i++ + ": " + info.getName() +
+			// " " + info.getDescription());
+			if (info.getName().contains("PulseAudio")) {
+				selectedMixerInfo = info;
+			}
+		}
+		assertNotNull(selectedMixerInfo);
+		selectedMixer = mixerProvider.getMixer(selectedMixerInfo); // AudioSystem.getMixer(selectedMixerInfo);
+		assertNotNull(selectedMixer);
+		if (selectedMixer.isOpen()) {
+			selectedMixer.close();
+		}
+	}
+
+	@Test
+	public void testOpenClose() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.close();
+
+	}
+
+	@Test
+	public void testSourceLinesExist() throws LineUnavailableException {
+		System.out.println("This tests that source lines exist");
+		selectedMixer.open();
+		Line.Info allLineInfo[] = selectedMixer.getSourceLineInfo();
+		assertNotNull(allLineInfo);
+		assertTrue(allLineInfo.length > 0);
+
+		boolean foundSourceDataLine = false;
+		boolean foundClip = false;
+		boolean foundPort = false;
+
+		int j = 0;
+		for (Line.Info lineInfo : allLineInfo) {
+			System.out.println("Source Line " + j++ + ": " + lineInfo.getLineClass());
+			if (lineInfo.getLineClass().toString().contains("SourceDataLine")) {
+				foundSourceDataLine = true;
+			} else if (lineInfo.getLineClass().toString().contains("Clip")) {
+				foundClip = true;
+			} else if (lineInfo.getLineClass().toString().contains("Port")) {
+				foundPort = true;
+			} else {
+				fail("Found a new type of line");
+			}
+			Line sourceLine = (Line) selectedMixer.getLine(lineInfo);
+			assertNotNull(sourceLine);
+
+		}
+
+		assertTrue(foundSourceDataLine, "Couldnt find a SourceDataLine");
+		assertTrue(foundClip, "Couldnt find a Clip");
+		assertTrue(foundPort, "Couldnt find a Port");
+
+	}
+
+	@Test
+	public void testTargetLinesExist() throws LineUnavailableException {
+		System.out.println("This tests if target Lines exist");
+		selectedMixer.open();
+		Line.Info allLineInfo[] = selectedMixer.getTargetLineInfo();
+		assertNotNull(allLineInfo);
+		assertTrue(allLineInfo.length > 0);
+
+		boolean foundTargetDataLine = false;
+		boolean foundPort = false;
+
+		int j = 0;
+		for (Line.Info lineInfo : allLineInfo) {
+			System.out.println("Target Line " + j++ + ": " + lineInfo.getLineClass());
+			if (lineInfo.getLineClass().toString().contains("TargetDataLine")) {
+				foundTargetDataLine = true;
+			} else if (lineInfo.getLineClass().toString().contains("Port")) {
+				foundPort = true;
+			} else {
+				fail("Found invalid type of target line");
+			}
+			Line targetLine = (Line) selectedMixer.getLine(lineInfo);
+			assertNotNull(targetLine);
+
+		}
+
+		assertTrue(foundTargetDataLine, "Couldnt find a TargetDataLine");
+		assertTrue(foundPort, "Couldnt find a target Port");
+	}
+
+	@Disabled
+	@Test
+	public void testHeadphonePortExists() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.getLine(Port.Info.HEADPHONE);
+	}
+
+	@Disabled
+	@Test
+	public void testSpeakerPortExists() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.getLine(Port.Info.SPEAKER);
+	}
+
+	@Disabled
+	@Test
+	public void testLineInPortExists() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.getLine(Port.Info.LINE_IN);
+	}
+
+	@Disabled
+	@Test
+	public void testCdPortExists() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.getLine(Port.Info.COMPACT_DISC);
+	}
+
+	@Disabled
+	@Test
+	public void testLineOutPortExists() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.getLine(Port.Info.LINE_OUT);
+	}
+
+	@Disabled
+	@Test
+	public void testMicrophonePortExists() throws LineUnavailableException {
+		selectedMixer.open();
+		selectedMixer.getLine(Port.Info.MICROPHONE);
+	}
+
+	@Test
+	public void testSaneNumberOfPorts() throws LineUnavailableException {
+		System.out.println("This test checks that a sane number of ports are detected");
+		selectedMixer.open();
+		Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
+		assertNotNull(lineInfos);
+
+		int ports = 0;
+		for (Line.Info info : lineInfos) {
+			if (info instanceof Port.Info) {
+				ports++;
+			}
+		}
+		assertTrue(ports > 0, "Too few Source ports");
+		assertTrue(ports < 5, "Too many Source ports... this looks wrong");
+
+		lineInfos = selectedMixer.getTargetLineInfo();
+		ports = 0;
+		for (Line.Info info : lineInfos) {
+			if (info instanceof Port.Info) {
+				ports++;
+			}
+		}
+		assertTrue(ports > 0, "Too few Target ports");
+		assertTrue(ports < 5, "Too many Target ports... this looks wrong");
+
+	}
+
+	@Test
+	public void testGetTargetPortInfo() throws LineUnavailableException {
+		System.out.println("This test checks target ports");
+		selectedMixer.open();
+		Line.Info[] lineInfos = selectedMixer.getTargetLineInfo();
+		int i = 0;
+		for (Line.Info info : lineInfos) {
+			if (info instanceof Port.Info) {
+				Port.Info portInfo = (Port.Info) info;
+				assertTrue(portInfo.isSource() == false);
+				assertTrue(portInfo.getLineClass() == Port.class);
+				System.out.println("Port " + ++i + ": " + portInfo.getName() + " - " + portInfo.getLineClass());
+			}
+		}
+
+	}
+
+	@Test
+	public void testGetSourcePortInfo() throws LineUnavailableException {
+		System.out.println("This test checks source ports");
+		selectedMixer.open();
+		Line.Info[] lineInfos = selectedMixer.getSourceLineInfo();
+		int i = 0;
+		for (Line.Info info : lineInfos) {
+			if (info instanceof Port.Info) {
+				Port.Info portInfo = (Port.Info) info;
+				assertTrue(portInfo.isSource() == true);
+				assertTrue(portInfo.getLineClass() == Port.class);
+				System.out.println("Port " + ++i + ": " + portInfo.getName() + " - " + portInfo.getLineClass());
+			}
+		}
+
+	}
+
+	@Test
+	public void testOpeningAgain() throws LineUnavailableException {
+		assertThrows(IllegalStateException.class, () -> {
+			selectedMixer.open();
+			selectedMixer.open();
+		});
+	}
+
+	@Test
+	public void testClosingAgain() throws LineUnavailableException, IllegalStateException {
+		assertThrows(IllegalStateException.class, () -> {
+			selectedMixer.close();
+			selectedMixer.close();
+		});
+	}
+
+	@Test
+	public void testSourceLinesOpenAndClose() throws LineUnavailableException {
+		System.out.println("This test checks if source lines open and close");
+		selectedMixer.open();
+
+		Line.Info allLineInfo[] = selectedMixer.getSourceLineInfo();
+		for (Line.Info lineInfo : allLineInfo) {
+			try {
+				Line sourceLine = selectedMixer.getLine(lineInfo);
+				sourceLine.open();
+				sourceLine.close();
+			} catch (IllegalArgumentException e) {
+				// ignore this
+			}
+		}
+	}
+
+	@Test
+	public void testTargetLinesOpenAndClose() throws LineUnavailableException {
+		System.out.println("This test checks if source lines open and close");
+		selectedMixer.open();
+
+		Line.Info allLineInfo[] = selectedMixer.getTargetLineInfo();
+		for (Line.Info lineInfo : allLineInfo) {
+			try {
+				TargetDataLine targetLine = (TargetDataLine) selectedMixer.getLine(lineInfo);
+				assertNotNull(targetLine);
+				targetLine.open(aSupportedFormat);
+				targetLine.close();
+			} catch (ClassCastException cce) {
+				Port targetLine = (Port) selectedMixer.getLine(lineInfo);
+				assertNotNull(targetLine);
+				targetLine.open();
+				targetLine.close();
+			}
+
+		}
+	}
+
+	@Test
+	public void testOpenEvent() throws LineUnavailableException {
+		LineListener listener = new LineListener() {
+			private int called = 0;
+
+			@Override
+			public void update(LineEvent event) {
+				assert (event.getType() == LineEvent.Type.OPEN);
+				called++;
+				// assert listener is called exactly once
+				assertEquals(1, called);
+			}
+		};
+
+		selectedMixer.addLineListener(listener);
+		selectedMixer.open();
+		selectedMixer.removeLineListener(listener);
+		selectedMixer.close();
+
+	}
+
+	@Test
+	public void testCloseEvent() throws LineUnavailableException {
+		LineListener listener = new LineListener() {
+			private int count = 0;
+
+			@Override
+			public void update(LineEvent event) {
+				assertTrue(event.getType() == LineEvent.Type.CLOSE);
+				count++;
+				// assert listener is called exactly once
+				assertEquals(1, count);
+
+			}
+		};
+
+		selectedMixer.open();
+		selectedMixer.addLineListener(listener);
+		selectedMixer.close();
+		selectedMixer.removeLineListener(listener);
+
+	}
+
+	@Test
+	public void testLineSupportedWorksWithoutOpeningMixer() {
+
+		assertFalse(selectedMixer.isOpen());
+
+		assertFalse(selectedMixer.isLineSupported(new DataLine.Info(SourceDataLine.class, aNotSupportedFormat)));
+
+		assertTrue(selectedMixer.isLineSupported(new DataLine.Info(SourceDataLine.class, aSupportedFormat)));
+
+	}
+
+	@Test
+	public void testSynchronizationNotSupported() throws LineUnavailableException {
+		selectedMixer.open();
+
+		SourceDataLine line1 = (SourceDataLine) selectedMixer.getLine(new Line.Info(SourceDataLine.class));
+		SourceDataLine line2 = (SourceDataLine) selectedMixer.getLine(new Line.Info(SourceDataLine.class));
+		Line[] lines = { line1, line2 };
+
+		assertFalse(selectedMixer.isSynchronizationSupported(lines, true));
+
+		assertFalse(selectedMixer.isSynchronizationSupported(lines, false));
+
+		try {
+			selectedMixer.synchronize(lines, true);
+			fail("mixer shouldnt be able to synchronize lines");
+		} catch (IllegalArgumentException e) {
+
+		}
+
+		try {
+			selectedMixer.synchronize(lines, false);
+			fail("mixer shouldnt be able to synchronize lines");
+		} catch (IllegalArgumentException e) {
+
+		}
+
+		selectedMixer.close();
+
+	}
+
+	@Disabled
+	@Test
+	public void testLongWait() throws LineUnavailableException {
+		selectedMixer.open();
+		try {
+			Thread.sleep(1000);
+		} catch (InterruptedException e) {
+			System.out.println("thread interrupted");
+		}
+
+	}
+
+	@AfterEach
+	public void tearDown() throws Exception {
+		if (selectedMixer.isOpen())
+			selectedMixer.close();
+	}
 
 }

@@ -37,81 +37,81 @@ exception statement from your version.
 
 package org.classpath.icedtea.pulseaudio;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.Line;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.Port;
+import javax.sound.sampled.spi.MixerProvider;
 
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class PulseAudioTargetPortTest {
 
-        Mixer mixer;
+	Mixer mixer;
 
-        @BeforeEach
-        public void setUp() throws Exception {
-                Mixer.Info mixerInfos[] = AudioSystem.getMixerInfo();
-                Mixer.Info selectedMixerInfo = null;
-                // int i = 0;
-                for (Mixer.Info info : mixerInfos) {
-                        // System.out.println("Mixer Line " + i++ + ": " + info.getName() +
-                        // " " + info.getDescription());
-                        if (info.getName().contains("PulseAudio")) {
-                                selectedMixerInfo = info;
-                        }
-                }
-                assertNotNull(selectedMixerInfo);
-                mixer = AudioSystem.getMixer(selectedMixerInfo);
-                assertNotNull(mixer);
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
+	@BeforeEach
+	public void setUp() throws Exception {
+		MixerProvider mixerProvider = new PulseAudioMixerProvider();
+		Mixer.Info mixerInfos[] = mixerProvider.getMixerInfo();
+		Mixer.Info selectedMixerInfo = null;
+		// int i = 0;
+		for (Mixer.Info info : mixerInfos) {
+			// System.out.println("Mixer Line " + i++ + ": " + info.getName() +
+			// " " + info.getDescription());
+			if (info.getName().contains("PulseAudio")) {
+				selectedMixerInfo = info;
+			}
+		}
+		assertNotNull(selectedMixerInfo);
+		mixer = mixerProvider.getMixer(selectedMixerInfo);
+		assertNotNull(mixer);
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
 
-                mixer.open();
+		mixer.open();
 
-        }
+	}
 
-        @Test
-        public void testClose() throws LineUnavailableException {
-                Line.Info[] lineInfos = mixer.getTargetLineInfo();
-                for (Line.Info info : lineInfos) {
-                        if (info.getLineClass() == Port.class) {
-                                System.out.println(info.toString());
-                                Port port = (Port) mixer.getLine(info);
-                                port.close();
-                        }
-                }
-        }
+	@Test
+	public void testClose() throws LineUnavailableException {
+		Line.Info[] lineInfos = mixer.getTargetLineInfo();
+		for (Line.Info info : lineInfos) {
+			if (info.getLineClass() == Port.class) {
+				System.out.println(info.toString());
+				Port port = (Port) mixer.getLine(info);
+				port.close();
+			}
+		}
+	}
 
-        @Test
-        public void testControls() throws LineUnavailableException {
-                Line.Info[] lineInfos = mixer.getTargetLineInfo();
-                for (Line.Info info : lineInfos) {
-                        if (info.getLineClass() == Port.class) {
-                                System.out.println(info.toString());
-                                Port port = (Port) mixer.getLine(info);
-                                if (!port.isOpen()) {
-                                        port.open();
-                                }
-                                FloatControl volumeControl = (FloatControl) port
-                                                .getControl(FloatControl.Type.VOLUME);
-                                volumeControl.setValue(60000);
-                                port.close();
-                        }
-                }
-        }
+	@Test
+	public void testControls() throws LineUnavailableException {
+		Line.Info[] lineInfos = mixer.getTargetLineInfo();
+		for (Line.Info info : lineInfos) {
+			if (info.getLineClass() == Port.class) {
+				System.out.println(info.toString());
+				Port port = (Port) mixer.getLine(info);
+				if (!port.isOpen()) {
+					port.open();
+				}
+				FloatControl volumeControl = (FloatControl) port.getControl(FloatControl.Type.VOLUME);
+				volumeControl.setValue(60000);
+				port.close();
+			}
+		}
+	}
 
-        @AfterEach
-        public void tearDown() {
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
-        }
+	@AfterEach
+	public void tearDown() {
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
+	}
 
 }

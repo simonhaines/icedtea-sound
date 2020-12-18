@@ -37,6 +37,13 @@ exception statement from your version.
 
 package org.classpath.icedtea.pulseaudio;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
 import java.io.File;
 import java.io.IOException;
 
@@ -51,594 +58,549 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.Mixer;
 import javax.sound.sampled.TargetDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
+import javax.sound.sampled.spi.MixerProvider;
 
-import static org.junit.Assert.*;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class PulseAudioTargetDataLineTest {
 
-        private Mixer mixer;
-        private TargetDataLine targetDataLine;
-
-        int started = 0;
-        int stopped = 0;
-
-        AudioFormat aSupportedFormat = new AudioFormat(
-                        AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 1, 1, 44100f, true);
-
-        class ThreadReader extends Thread {
-                TargetDataLine line;
-                byte[] buffer;
-
-                public ThreadReader(TargetDataLine line, byte[] buffer)
-                                throws LineUnavailableException {
-
-                        this.line = line;
-                        this.buffer = buffer;
-
-                }
-
-                @Override
-                public void run() {
-                        line.read(buffer, 0, buffer.length);
-                }
-        }
-
-        @BeforeEach
-        public void setUp() throws LineUnavailableException {
-                Mixer.Info[] mixerInfos = AudioSystem.getMixerInfo();
-                Mixer.Info wantedMixerInfo = null;
-                for (Mixer.Info mixerInfo : mixerInfos) {
-                        if (mixerInfo.getName().contains("PulseAudio")) {
-                                wantedMixerInfo = mixerInfo;
-                        }
-                }
-                assertNotNull(wantedMixerInfo);
-                mixer = AudioSystem.getMixer(wantedMixerInfo);
-                assertNotNull(mixer);
-                mixer.open();
-                targetDataLine = null;
-                started = 0;
-                stopped = 0;
-
-        }
-
-        @Test
-        public void testOpenClose() throws LineUnavailableException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                targetDataLine.open();
-                targetDataLine.close();
-        }
-
-        @Test
-        public void testIsActiveAndIsOpen() throws LineUnavailableException {
-
-                TargetDataLine line = (TargetDataLine) mixer.getLine(new DataLine.Info(
-                                TargetDataLine.class, aSupportedFormat, 1000));
-
-                assertFalse(line.isActive());
-                assertFalse(line.isOpen());
-                line.open();
-                assertTrue(line.isOpen());
-                assertFalse(line.isActive());
-                line.start();
-                assertTrue(line.isOpen());
-                assertTrue(line.isActive());
-                line.stop();
-                assertTrue(line.isOpen());
-                assertFalse(line.isActive());
-                line.close();
-                assertFalse(line.isOpen());
-                assertFalse(line.isActive());
-
-        }
-
-        @Test
-        public void testOpenEvents() throws LineUnavailableException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-
-                LineListener openListener = new LineListener() {
-                        private int calledCount = 0;
-
-                        @Override
-                        public void update(LineEvent event) {
-                                assertEquals(LineEvent.Type.OPEN, event.getType());
-                                System.out.println("OPEN");
-                                calledCount++;
-                                assertEquals(1, calledCount);
-                        }
-
-                };
-
-                targetDataLine.addLineListener(openListener);
-                targetDataLine.open();
-                targetDataLine.removeLineListener(openListener);
-                targetDataLine.close();
+	private Mixer mixer;
+	private TargetDataLine targetDataLine;
+
+	int started = 0;
+	int stopped = 0;
+
+	AudioFormat aSupportedFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 1, 1, 44100f, true);
+
+	class ThreadReader extends Thread {
+		TargetDataLine line;
+		byte[] buffer;
+
+		public ThreadReader(TargetDataLine line, byte[] buffer) throws LineUnavailableException {
+
+			this.line = line;
+			this.buffer = buffer;
+
+		}
+
+		@Override
+		public void run() {
+			line.read(buffer, 0, buffer.length);
+		}
+	}
+
+	@BeforeEach
+	public void setUp() throws LineUnavailableException {
+		MixerProvider mixerProvider = new PulseAudioMixerProvider();
+		Mixer.Info[] mixerInfos = mixerProvider.getMixerInfo();
+		Mixer.Info wantedMixerInfo = null;
+		for (Mixer.Info mixerInfo : mixerInfos) {
+			if (mixerInfo.getName().contains("PulseAudio")) {
+				wantedMixerInfo = mixerInfo;
+			}
+		}
+		assertNotNull(wantedMixerInfo);
+		mixer = mixerProvider.getMixer(wantedMixerInfo);
+		assertNotNull(mixer);
+		mixer.open();
+		targetDataLine = null;
+		started = 0;
+		stopped = 0;
+
+	}
+
+	@Test
+	public void testOpenClose() throws LineUnavailableException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		targetDataLine.open();
+		targetDataLine.close();
+	}
+
+	@Test
+	public void testIsActiveAndIsOpen() throws LineUnavailableException {
+
+		TargetDataLine line = (TargetDataLine) mixer
+				.getLine(new DataLine.Info(TargetDataLine.class, aSupportedFormat, 1000));
+
+		assertFalse(line.isActive());
+		assertFalse(line.isOpen());
+		line.open();
+		assertTrue(line.isOpen());
+		assertFalse(line.isActive());
+		line.start();
+		assertTrue(line.isOpen());
+		assertTrue(line.isActive());
+		line.stop();
+		assertTrue(line.isOpen());
+		assertFalse(line.isActive());
+		line.close();
+		assertFalse(line.isOpen());
+		assertFalse(line.isActive());
+
+	}
+
+	@Test
+	public void testOpenEvents() throws LineUnavailableException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+
+		LineListener openListener = new LineListener() {
+			private int calledCount = 0;
+
+			@Override
+			public void update(LineEvent event) {
+				assertEquals(LineEvent.Type.OPEN, event.getType());
+				System.out.println("OPEN");
+				calledCount++;
+				assertEquals(1, calledCount);
+			}
+
+		};
+
+		targetDataLine.addLineListener(openListener);
+		targetDataLine.open();
+		targetDataLine.removeLineListener(openListener);
+		targetDataLine.close();
+
+	}
+
+	@Test
+	public void testOpenWithFormat() throws LineUnavailableException {
+		System.out.println("This test checks that open(AudioFormat) works");
 
-        }
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		targetDataLine.open(aSupportedFormat);
 
-        @Test
-        public void testOpenWithFormat() throws LineUnavailableException {
-                System.out.println("This test checks that open(AudioFormat) works");
+	}
 
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                targetDataLine.open(aSupportedFormat);
-
-        }
-
-        @Test
-        public void testRead() throws LineUnavailableException {
-                System.out.println("This test checks that read() sort of wroks");
-
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                targetDataLine.open(aSupportedFormat);
+	@Test
+	public void testRead() throws LineUnavailableException {
+		System.out.println("This test checks that read() sort of wroks");
 
-                byte[] buffer = new byte[1000];
-                for (int i = 0; i < buffer.length; i++) {
-                        buffer[i] = 0;
-                }
-                targetDataLine.start();
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		targetDataLine.open(aSupportedFormat);
 
-                targetDataLine.read(buffer, 0, buffer.length);
-                assertTrue(buffer[999] != 0);
+		byte[] buffer = new byte[1000];
+		for (int i = 0; i < buffer.length; i++) {
+			buffer[i] = 0;
+		}
+		targetDataLine.start();
 
-                buffer = new byte[1000];
-                for (int i = 0; i < buffer.length; i++) {
-                        buffer[i] = 0;
-                }
+		targetDataLine.read(buffer, 0, buffer.length);
+		assertTrue(buffer[999] != 0);
 
-                targetDataLine.read(buffer, 0, buffer.length - 2);
-                assertTrue(buffer[999] == 0);
+		buffer = new byte[1000];
+		for (int i = 0; i < buffer.length; i++) {
+			buffer[i] = 0;
+		}
 
-                targetDataLine.stop();
-                targetDataLine.close();
+		targetDataLine.read(buffer, 0, buffer.length - 2);
+		assertTrue(buffer[999] == 0);
 
-        }
-
-        @Test
-        public void testReadLessThanFrameSize() throws LineUnavailableException {
-                System.out.println("This test checks that read() throws an exception "
-                                + "when not reading an integral number of frames");
-
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                AudioFormat breakingFormat = new AudioFormat(
-                                AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f,
-                                true);
-                targetDataLine.open(breakingFormat);
+		targetDataLine.stop();
+		targetDataLine.close();
 
-                byte[] buffer = new byte[1000];
-                for (int i = 0; i < buffer.length; i++) {
-                        buffer[i] = 0;
-                }
-                targetDataLine.start();
+	}
 
-                assertThrows(IllegalArgumentException.class, () -> targetDataLine.read(buffer, 0, buffer.length - 1));
+	@Test
+	public void testReadLessThanFrameSize() throws LineUnavailableException {
+		System.out.println(
+				"This test checks that read() throws an exception " + "when not reading an integral number of frames");
 
-                targetDataLine.stop();
-                targetDataLine.close();
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		AudioFormat breakingFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f, true);
+		targetDataLine.open(breakingFormat);
 
-        }
+		byte[] buffer = new byte[1000];
+		for (int i = 0; i < buffer.length; i++) {
+			buffer[i] = 0;
+		}
+		targetDataLine.start();
 
-        @Test
-        public void testReadAndClose() throws LineUnavailableException,
-                        InterruptedException {
-                System.out.println("This test tries to close a line while "
-                                + "read()ing to check that read() returns");
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                AudioFormat breakingFormat = new AudioFormat(
-                                AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f,
-                                true);
-                targetDataLine.open(breakingFormat);
-                targetDataLine.start();
-                byte[] buffer = new byte[1000000];
+		assertThrows(IllegalArgumentException.class, () -> targetDataLine.read(buffer, 0, buffer.length - 1));
 
-                ThreadReader reader = new ThreadReader(targetDataLine, buffer);
-                reader.start();
+		targetDataLine.stop();
+		targetDataLine.close();
 
-                Thread.sleep(100);
+	}
 
-                assertTrue(reader.isAlive());
+	@Test
+	public void testReadAndClose() throws LineUnavailableException, InterruptedException {
+		System.out.println("This test tries to close a line while " + "read()ing to check that read() returns");
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		AudioFormat breakingFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f, true);
+		targetDataLine.open(breakingFormat);
+		targetDataLine.start();
+		byte[] buffer = new byte[1000000];
 
-                targetDataLine.close();
+		ThreadReader reader = new ThreadReader(targetDataLine, buffer);
+		reader.start();
 
-                reader.join(500);
+		Thread.sleep(100);
 
-                assertFalse(reader.isAlive());
+		assertTrue(reader.isAlive());
 
-        }
+		targetDataLine.close();
 
-        @Test
-        public void testReadAndStop() throws LineUnavailableException,
-                        InterruptedException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                AudioFormat breakingFormat = new AudioFormat(
-                                AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f,
-                                true);
-                targetDataLine.open(breakingFormat);
-                targetDataLine.start();
-                byte[] buffer = new byte[10000000];
+		reader.join(500);
 
-                ThreadReader reader = new ThreadReader(targetDataLine, buffer);
-                reader.start();
+		assertFalse(reader.isAlive());
 
-                Thread.sleep(100);
+	}
 
-                assertTrue(reader.isAlive());
+	@Test
+	public void testReadAndStop() throws LineUnavailableException, InterruptedException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		AudioFormat breakingFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f, true);
+		targetDataLine.open(breakingFormat);
+		targetDataLine.start();
+		byte[] buffer = new byte[10000000];
 
-                targetDataLine.stop();
+		ThreadReader reader = new ThreadReader(targetDataLine, buffer);
+		reader.start();
 
-                Thread.sleep(100);
+		Thread.sleep(100);
 
-                assertFalse(reader.isAlive());
+		assertTrue(reader.isAlive());
 
-                targetDataLine.close();
+		targetDataLine.stop();
 
-        }
+		Thread.sleep(100);
 
-        // this is kind of messed up
-        // drain should hang on a started data line
-        // but read should return
-        @Test
-        public void testReadAndDrain() throws LineUnavailableException,
-                        InterruptedException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                AudioFormat breakingFormat = new AudioFormat(
-                                AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f,
-                                true);
-                targetDataLine.open(breakingFormat);
-                targetDataLine.start();
-                byte[] buffer = new byte[10000000];
+		assertFalse(reader.isAlive());
 
-                ThreadReader reader = new ThreadReader(targetDataLine, buffer);
-                reader.start();
+		targetDataLine.close();
 
-                Thread.sleep(100);
+	}
 
-                assertTrue(reader.isAlive());
+	// this is kind of messed up
+	// drain should hang on a started data line
+	// but read should return
+	@Test
+	public void testReadAndDrain() throws LineUnavailableException, InterruptedException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		AudioFormat breakingFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f, true);
+		targetDataLine.open(breakingFormat);
+		targetDataLine.start();
+		byte[] buffer = new byte[10000000];
 
-                Thread drainer = new Thread() {
+		ThreadReader reader = new ThreadReader(targetDataLine, buffer);
+		reader.start();
 
-                        @Override
-                        public void run() {
-                                targetDataLine.drain();
+		Thread.sleep(100);
 
-                        }
+		assertTrue(reader.isAlive());
 
-                };
+		Thread drainer = new Thread() {
 
-                drainer.start();
+			@Override
+			public void run() {
+				targetDataLine.drain();
 
-                Thread.sleep(100);
+			}
 
-                assertFalse(reader.isAlive());
+		};
 
-                targetDataLine.stop();
+		drainer.start();
 
-                Thread.sleep(100);
-                assertFalse(drainer.isAlive());
+		Thread.sleep(100);
 
-                targetDataLine.close();
-        }
+		assertFalse(reader.isAlive());
 
-        @Test
-        public void testReadAndFlush() throws LineUnavailableException,
-                        InterruptedException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                AudioFormat breakingFormat = new AudioFormat(
-                                AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f,
-                                true);
-                targetDataLine.open(breakingFormat);
-                targetDataLine.start();
-                byte[] buffer = new byte[10000000];
+		targetDataLine.stop();
 
-                ThreadReader reader = new ThreadReader(targetDataLine, buffer);
-                reader.start();
+		Thread.sleep(100);
+		assertFalse(drainer.isAlive());
 
-                Thread.sleep(100);
+		targetDataLine.close();
+	}
 
-                assertTrue(reader.isAlive());
+	@Test
+	public void testReadAndFlush() throws LineUnavailableException, InterruptedException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		AudioFormat breakingFormat = new AudioFormat(AudioFormat.Encoding.PCM_UNSIGNED, 44100f, 8, 2, 2, 44100f, true);
+		targetDataLine.open(breakingFormat);
+		targetDataLine.start();
+		byte[] buffer = new byte[10000000];
 
-                targetDataLine.flush();
+		ThreadReader reader = new ThreadReader(targetDataLine, buffer);
+		reader.start();
 
-                Thread.sleep(100);
+		Thread.sleep(100);
 
-                assertFalse(reader.isAlive());
+		assertTrue(reader.isAlive());
 
-                targetDataLine.stop();
-                targetDataLine.close();
-        }
+		targetDataLine.flush();
 
-        @Test
-        public void testDrain() throws LineUnavailableException,
-                        InterruptedException {
-                System.out
-                                .println("This test checks that drain() on a start()ed TargetDataLine hangs");
+		Thread.sleep(100);
 
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
+		assertFalse(reader.isAlive());
 
-                targetDataLine.open();
-                targetDataLine.start();
+		targetDataLine.stop();
+		targetDataLine.close();
+	}
 
-                Thread th = new Thread(new Runnable() {
+	@Test
+	public void testDrain() throws LineUnavailableException, InterruptedException {
+		System.out.println("This test checks that drain() on a start()ed TargetDataLine hangs");
 
-                        @Override
-                        public void run() {
-                                targetDataLine.drain();
-                        }
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
 
-                });
+		targetDataLine.open();
+		targetDataLine.start();
 
-                th.start();
+		Thread th = new Thread(new Runnable() {
 
-                th.join(5000);
+			@Override
+			public void run() {
+				targetDataLine.drain();
+			}
 
-                if (!th.isAlive()) {
-                        targetDataLine.stop();
-                        th.join();
-                        targetDataLine.close();
-                        fail("drain() on a opened TargetDataLine should hang");
-                }
-        }
+		});
 
-        @Test
-        public void testDrainWihtoutOpen() throws LineUnavailableException {
-                System.out
-                                .println("This test checks that drain() fails on a line not opened");
+		th.start();
 
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
+		th.join(5000);
 
-                assertThrows(IllegalStateException.class, () -> targetDataLine.drain());
+		if (!th.isAlive()) {
+			targetDataLine.stop();
+			th.join();
+			targetDataLine.close();
+			fail("drain() on a opened TargetDataLine should hang");
+		}
+	}
 
-        }
+	@Test
+	public void testDrainWihtoutOpen() throws LineUnavailableException {
+		System.out.println("This test checks that drain() fails on a line not opened");
 
-        @Test
-        public void testFlush() throws LineUnavailableException {
-                System.out.println("This test checks that flush() wroks");
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
 
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
-                targetDataLine.open();
+		assertThrows(IllegalStateException.class, () -> targetDataLine.drain());
 
-                byte[] buffer = new byte[1000];
-                for (int i = 0; i < buffer.length; i++) {
-                        buffer[i] = 0;
-                }
-                targetDataLine.start();
+	}
 
-                targetDataLine.read(buffer, 0, buffer.length);
-                targetDataLine.stop();
-                targetDataLine.flush();
-                targetDataLine.close();
-        }
+	@Test
+	public void testFlush() throws LineUnavailableException {
+		System.out.println("This test checks that flush() wroks");
 
-        @Test
-        public void testFlushWithoutOpen() throws LineUnavailableException {
-                System.out
-                                .println("This test checks that flush() fails on a line not opened");
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
+		targetDataLine.open();
 
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
+		byte[] buffer = new byte[1000];
+		for (int i = 0; i < buffer.length; i++) {
+			buffer[i] = 0;
+		}
+		targetDataLine.start();
 
-                assertThrows(IllegalStateException.class, () -> targetDataLine.flush());
-        }
+		targetDataLine.read(buffer, 0, buffer.length);
+		targetDataLine.stop();
+		targetDataLine.flush();
+		targetDataLine.close();
+	}
 
-        @Test
-        public void testCloseEvents() throws LineUnavailableException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
-                assertNotNull(targetDataLine);
+	@Test
+	public void testFlushWithoutOpen() throws LineUnavailableException {
+		System.out.println("This test checks that flush() fails on a line not opened");
 
-                LineListener closeListener = new LineListener() {
-                        private int calledCount = 0;
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
 
-                        @Override
-                        public void update(LineEvent event) {
-                                assertEquals(LineEvent.Type.CLOSE, event.getType());
-                                System.out.println("CLOSE");
-                                calledCount++;
-                                assertEquals(1, calledCount);
-                        }
+		assertThrows(IllegalStateException.class, () -> targetDataLine.flush());
+	}
 
-                };
+	@Test
+	public void testCloseEvents() throws LineUnavailableException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
+		assertNotNull(targetDataLine);
 
-                targetDataLine.open();
-                targetDataLine.addLineListener(closeListener);
-                targetDataLine.close();
-                targetDataLine.removeLineListener(closeListener);
+		LineListener closeListener = new LineListener() {
+			private int calledCount = 0;
 
-        }
+			@Override
+			public void update(LineEvent event) {
+				assertEquals(LineEvent.Type.CLOSE, event.getType());
+				System.out.println("CLOSE");
+				calledCount++;
+				assertEquals(1, calledCount);
+			}
 
-        @Test
-        public void testStartedStopped() throws LineUnavailableException,
-                        UnsupportedAudioFileException, IOException, InterruptedException {
+		};
 
-                File soundFile = new File("testsounds/startup.wav");
-                AudioInputStream audioInputStream = AudioSystem
-                                .getAudioInputStream(soundFile);
-                AudioFormat audioFormat = audioInputStream.getFormat();
+		targetDataLine.open();
+		targetDataLine.addLineListener(closeListener);
+		targetDataLine.close();
+		targetDataLine.removeLineListener(closeListener);
 
-                TargetDataLine line;
-                line = (TargetDataLine) mixer.getLine(new DataLine.Info(
-                                TargetDataLine.class, audioFormat));
-                assertNotNull(line);
+	}
 
-                started = 0;
-                stopped = 0;
+	@Test
+	public void testStartedStopped()
+			throws LineUnavailableException, UnsupportedAudioFileException, IOException, InterruptedException {
 
-                line.open(audioFormat);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		File soundFile = new File(classLoader.getResource("startup.wav").getFile());
+		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		AudioFormat audioFormat = audioInputStream.getFormat();
 
-                LineListener startStopListener = new LineListener() {
+		TargetDataLine line;
+		line = (TargetDataLine) mixer.getLine(new DataLine.Info(TargetDataLine.class, audioFormat));
+		assertNotNull(line);
 
-                        @Override
-                        public void update(LineEvent event) {
-                                if (event.getType() == LineEvent.Type.START) {
-                                        System.out.println("START");
-                                        started++;
-                                        assertEquals(1, started);
-                                }
+		started = 0;
+		stopped = 0;
 
-                                if (event.getType() == LineEvent.Type.STOP) {
-                                        System.out.println("STOP");
-                                        stopped++;
-                                        assertEquals(1, stopped);
-                                }
-                        }
+		line.open(audioFormat);
 
-                };
+		LineListener startStopListener = new LineListener() {
 
-                line.addLineListener(startStopListener);
+			@Override
+			public void update(LineEvent event) {
+				if (event.getType() == LineEvent.Type.START) {
+					System.out.println("START");
+					started++;
+					assertEquals(1, started);
+				}
 
-                line.start();
+				if (event.getType() == LineEvent.Type.STOP) {
+					System.out.println("STOP");
+					stopped++;
+					assertEquals(1, stopped);
+				}
+			}
 
-                Thread.sleep(100);
+		};
 
-                line.stop();
-                line.close();
+		line.addLineListener(startStopListener);
 
-                assertEquals(1, started);
-                assertEquals(1, stopped);
+		line.start();
 
-        }
+		Thread.sleep(100);
 
-        @Test
-        public void testMixerKnowsAboutOpenLines() throws LineUnavailableException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
+		line.stop();
+		line.close();
 
-                int initiallyOpen = mixer.getTargetLines().length;
-                targetDataLine.open();
-                assertEquals(initiallyOpen+1, mixer.getTargetLines().length);
-                targetDataLine.close();
-                assertEquals(initiallyOpen, mixer.getTargetLines().length);
+		assertEquals(1, started);
+		assertEquals(1, stopped);
 
-        }
+	}
 
-        @Test
-        public void testAllTargetLinesClosed() {
-                assertEquals(0, mixer.getTargetLines().length);
+	@Test
+	public void testMixerKnowsAboutOpenLines() throws LineUnavailableException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
 
-        }
+		int initiallyOpen = mixer.getTargetLines().length;
+		targetDataLine.open();
+		assertEquals(initiallyOpen + 1, mixer.getTargetLines().length);
+		targetDataLine.close();
+		assertEquals(initiallyOpen, mixer.getTargetLines().length);
 
-        @Test
-        public void testTargetLineHasNoControls() throws LineUnavailableException {
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
+	}
 
-                targetDataLine.open();
+	@Test
+	public void testAllTargetLinesClosed() {
+		assertEquals(0, mixer.getTargetLines().length);
 
-                assertEquals(0, targetDataLine.getControls().length);
+	}
 
-                targetDataLine.close();
-        }
+	@Test
+	public void testTargetLineHasNoControls() throws LineUnavailableException {
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
 
-        @Test
-        public void testFramePosition() throws LineUnavailableException {
-                System.out
-                                .println("This test tests frame position for a target data line");
+		targetDataLine.open();
 
-                final int CHUNCKS = 100;
-                final int BUFFER_SIZE = 1000;
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
+		assertEquals(0, targetDataLine.getControls().length);
 
-                targetDataLine.open();
-                targetDataLine.start();
-                byte[] data = new byte[BUFFER_SIZE];
+		targetDataLine.close();
+	}
 
-                for (int i = 0; i < CHUNCKS; i++) {
-                        targetDataLine.read(data, 0, data.length);
-                }
+	@Test
+	public void testFramePosition() throws LineUnavailableException {
+		System.out.println("This test tests frame position for a target data line");
 
-                targetDataLine.stop();
-                long pos = targetDataLine.getLongFramePosition();
-                System.out.println("Frames read: " + pos);
-                long expected = BUFFER_SIZE * CHUNCKS
-                                / targetDataLine.getFormat().getFrameSize();
-                System.out.println("Expected: " + expected);
-                long granularity = 2;
-                assertTrue(Math.abs(expected - pos) < granularity);
-                targetDataLine.close();
-        }
+		final int CHUNCKS = 100;
+		final int BUFFER_SIZE = 1000;
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
 
-        @Test
-        public void testFramePositionWithStartAndStop()
-                        throws LineUnavailableException, InterruptedException {
-                System.out
-                                .println("This test tests frame position for a target data line");
+		targetDataLine.open();
+		targetDataLine.start();
+		byte[] data = new byte[BUFFER_SIZE];
 
-                final int CHUNCKS = 100;
-                final int BUFFER_SIZE = 1000;
-                targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(
-                                TargetDataLine.class));
+		for (int i = 0; i < CHUNCKS; i++) {
+			targetDataLine.read(data, 0, data.length);
+		}
 
-                targetDataLine.open();
-                targetDataLine.start();
-                byte[] data = new byte[BUFFER_SIZE];
+		targetDataLine.stop();
+		long pos = targetDataLine.getLongFramePosition();
+		System.out.println("Frames read: " + pos);
+		long expected = BUFFER_SIZE * CHUNCKS / targetDataLine.getFormat().getFrameSize();
+		System.out.println("Expected: " + expected);
+		long granularity = 2;
+		assertTrue(Math.abs(expected - pos) < granularity);
+		targetDataLine.close();
+	}
 
-                for (int i = 0; i < CHUNCKS; i++) {
-                        if (i == CHUNCKS / 2) {
-                                targetDataLine.stop();
-                                Thread.sleep(1000);
-                                targetDataLine.start();
-                        }
+	@Test
+	public void testFramePositionWithStartAndStop() throws LineUnavailableException, InterruptedException {
+		System.out.println("This test tests frame position for a target data line");
 
-                        targetDataLine.read(data, 0, data.length);
-                }
+		final int CHUNCKS = 100;
+		final int BUFFER_SIZE = 1000;
+		targetDataLine = (TargetDataLine) mixer.getLine(new Line.Info(TargetDataLine.class));
 
-                targetDataLine.stop();
-                long pos = targetDataLine.getLongFramePosition();
-                System.out.println("Frames read: " + pos);
-                long expected = BUFFER_SIZE * CHUNCKS
-                                / targetDataLine.getFormat().getFrameSize();
-                System.out.println("Expected: " + expected);
-                long granularity = 2;
-                assertTrue(Math.abs(expected - pos) < granularity);
-                targetDataLine.close();
+		targetDataLine.open();
+		targetDataLine.start();
+		byte[] data = new byte[BUFFER_SIZE];
 
-        }
+		for (int i = 0; i < CHUNCKS; i++) {
+			if (i == CHUNCKS / 2) {
+				targetDataLine.stop();
+				Thread.sleep(1000);
+				targetDataLine.start();
+			}
 
-        @AfterEach
-        public void tearDown() {
-                if (targetDataLine != null) {
-                        if (targetDataLine.isActive()) {
-                                targetDataLine.stop();
-                        }
+			targetDataLine.read(data, 0, data.length);
+		}
 
-                        if (targetDataLine.isOpen()) {
-                                targetDataLine.close();
-                        }
-                }
+		targetDataLine.stop();
+		long pos = targetDataLine.getLongFramePosition();
+		System.out.println("Frames read: " + pos);
+		long expected = BUFFER_SIZE * CHUNCKS / targetDataLine.getFormat().getFrameSize();
+		System.out.println("Expected: " + expected);
+		long granularity = 2;
+		assertTrue(Math.abs(expected - pos) < granularity);
+		targetDataLine.close();
 
-                if (mixer.isOpen()) {
-                        mixer.close();
-                }
-        }
+	}
+
+	@AfterEach
+	public void tearDown() {
+		if (targetDataLine != null) {
+			if (targetDataLine.isActive()) {
+				targetDataLine.stop();
+			}
+
+			if (targetDataLine.isOpen()) {
+				targetDataLine.close();
+			}
+		}
+
+		if (mixer.isOpen()) {
+			mixer.close();
+		}
+	}
 
 }
