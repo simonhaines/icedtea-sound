@@ -37,7 +37,10 @@ exception statement from your version.
 
 package org.classpath.icedtea.pulseaudio;
 
-import java.io.File;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.io.IOException;
 
 import javax.sound.sampled.AudioFormat;
@@ -53,10 +56,8 @@ import javax.sound.sampled.Mixer;
 import javax.sound.sampled.SourceDataLine;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class PulseAudioSourceDataLineRawTest {
@@ -138,8 +139,8 @@ public class PulseAudioSourceDataLineRawTest {
 		System.out.println("This test checks if START and STOP notifications appear on corking");
 
 		final ClassLoader classLoader = getClass().getClassLoader();
-		File soundFile = new File(classLoader.getResource("startup.wav").getFile());
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("startup.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		PulseAudioSourceDataLine line;
@@ -195,8 +196,9 @@ public class PulseAudioSourceDataLineRawTest {
 		Mixer selectedMixer = mixer;
 		SourceDataLine line = (SourceDataLine) selectedMixer.getLine(new Line.Info(SourceDataLine.class));
 
-		File soundFile = new File("logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		line.open(audioFormat);
@@ -223,8 +225,9 @@ public class PulseAudioSourceDataLineRawTest {
 
 	@Test
 	public void testSettingStreamName() throws LineUnavailableException, UnsupportedAudioFileException, IOException {
-		File soundFile = new File("logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		PulseAudioSourceDataLine line;

@@ -161,7 +161,8 @@ public class PulseAudioClipTest {
 			throws LineUnavailableException, IOException, UnsupportedAudioFileException, InterruptedException {
 		System.out.println("This tests loop(LOOP_CONTINUOUSLY) on the Clip");
 		final Clip clip = (Clip) mixer.getLine(new Line.Info(Clip.class));
-		File soundFile = new File("testsounds/error.wav");
+		final ClassLoader classLoader = getClass().getClassLoader();
+		File soundFile = new File(classLoader.getResource("error.wav").getFile());
 		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
 		clip.open(audioInputStream);
 

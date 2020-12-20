@@ -370,11 +370,9 @@ abstract class PulseAudioDataLine extends PulseAudioLine implements DataLine {
     }
 
     @Override
-    public synchronized void stop() {
+    public void stop() {
         if (!isOpen()) {
-            // For some reason, we are being asked to stop a line
-            // that isn't even open.
-            return;
+            throw new IllegalStateException("Line must be opened before it can be stopped");
         }
         writeInterrupted = true;
         if (!isStarted) {

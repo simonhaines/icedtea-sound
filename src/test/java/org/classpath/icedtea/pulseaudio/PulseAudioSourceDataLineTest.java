@@ -786,8 +786,9 @@ public class PulseAudioSourceDataLineTest {
 		Mixer selectedMixer = mixer;
 		sourceDataLine = (SourceDataLine) selectedMixer.getLine(new Line.Info(SourceDataLine.class));
 
-		File soundFile = new File("logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine.open(audioFormat);
@@ -819,8 +820,9 @@ public class PulseAudioSourceDataLineTest {
 
 		sourceDataLine = (SourceDataLine) selectedMixer.getLine(new Line.Info(SourceDataLine.class));
 
-		File soundFile = new File("logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine.open(audioFormat);
@@ -907,8 +909,9 @@ public class PulseAudioSourceDataLineTest {
 
 	@Test
 	public void testFramePosition() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-		File soundFile = new File("testsounds/logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream = 
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine = (SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat));
@@ -940,8 +943,10 @@ public class PulseAudioSourceDataLineTest {
 	@Test
 	public void testFramePositionAfterPlayingTwice()
 			throws UnsupportedAudioFileException, IOException, LineUnavailableException {
-		File soundFile = new File("testsounds/logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine = (SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat));
@@ -963,8 +968,8 @@ public class PulseAudioSourceDataLineTest {
 		sourceDataLine.drain();
 		sourceDataLine.stop();
 
-		soundFile = new File("testsounds/logout.wav");
-		audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		audioInputStream = AudioSystem.getAudioInputStream(
+				classLoader.getResourceAsStream("logout.wav"));
 		audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine.start();
@@ -993,8 +998,9 @@ public class PulseAudioSourceDataLineTest {
 	@Test
 	public void testMicroSecondPosition() throws UnsupportedAudioFileException, IOException, LineUnavailableException {
 
-		File soundFile = new File("testsounds/logout.wav");
-		AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine = (SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat));
@@ -1019,7 +1025,8 @@ public class PulseAudioSourceDataLineTest {
 		long expected = 6200;
 		long granularity = 100;
 		long pos = sourceDataLine.getMicrosecondPosition();
-		assertTrue(Math.abs(expected - pos) < granularity);
+		assertTrue(Math.abs(expected - pos) < granularity,
+				String.format("expecting %d +/-%d, got %d", expected, granularity, pos));
 		sourceDataLine.close();
 
 	}
@@ -1080,8 +1087,9 @@ public class PulseAudioSourceDataLineTest {
 	public void testDrainWithoutStartDataOnTheLine()
 			throws LineUnavailableException, UnsupportedAudioFileException, IOException, InterruptedException {
 
-		File soundFile = new File("testsounds/logout.wav");
-		final AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		final AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine = (SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat, 1000));
@@ -1128,8 +1136,9 @@ public class PulseAudioSourceDataLineTest {
 	public void testDrainWithoutStartNoDataOnTheLine()
 			throws LineUnavailableException, UnsupportedAudioFileException, IOException, InterruptedException {
 
-		File soundFile = new File("testsounds/logout.wav");
-		final AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(soundFile);
+		final ClassLoader classLoader = getClass().getClassLoader();
+		final AudioInputStream audioInputStream =
+				AudioSystem.getAudioInputStream(classLoader.getResourceAsStream("logout.wav"));
 		AudioFormat audioFormat = audioInputStream.getFormat();
 
 		sourceDataLine = (SourceDataLine) mixer.getLine(new DataLine.Info(SourceDataLine.class, audioFormat, 1000));

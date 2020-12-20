@@ -44,6 +44,7 @@ import javax.sound.sampled.LineUnavailableException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -85,6 +86,7 @@ public class PulseAudioMixerRawTest {
 	 * listening on port 4173
 	 */
 	@Test
+	@Disabled
 	public void testRemoteOpenWithValidPort() throws UnknownHostException, LineUnavailableException {
 		System.out.println("This test tries to connect a valid remote system");
 		mixer.openRemote("JUnitTest", "town", 4713);
@@ -96,6 +98,7 @@ public class PulseAudioMixerRawTest {
 	 * listening
 	 */
 	@Test
+	@Disabled
 	public void testRemoteOpen() throws UnknownHostException, LineUnavailableException {
 		mixer.openRemote("JUnitTest", "town");
 		mixer.close();
